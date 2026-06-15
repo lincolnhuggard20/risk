@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dignity of Risk Scorer</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green-bg: #EAF3DE; --green-text: #3B6D11; --green-border: #639922;
+    --amber-bg: #FAEEDA; --amber-text: #854F0B; --amber-border: #BA7517;
+    --orange-bg: #FAECE7; --orange-text: #993C1D; --orange-border: #D85A30;
+    --red-bg: #FCEBEB; --red-text: #A32D2D; --red-border: #E24B4A;
+    --surface: #ffffff;
+    --surface-2: #f8f7f5;
+    --border: #e0ddd6;
+    --border-strong: #c8c4bc;
+    --text: #1a1917;
+    --text-2: #57534e;
+    --text-3: #a8a29e;
+    --blue-bg: #EFF6FF; --blue-text: #1e40af; --blue-border: #93c5fd;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f3f2ef;
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem 1rem;
+    line-height: 1.6;
+  }
+
+  .container {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+
+  header {
+    margin-bottom: 2rem;
+  }
+
+  header h1 {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  header p {
+    font-size: 14px;
+    color: var(--text-2);
+  }
+
+  .api-bar {
+    background: var(--blue-bg);
+    border: 0.5px solid var(--blue-border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .api-bar label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--blue-text);
+    white-space: nowrap;
+  }
+
+  .api-bar input {
+    flex: 1;
+    min-width: 200px;
+    padding: 7px 10px;
+    font-size: 13px;
+    border: 0.5px solid var(--blue-border);
+    border-radius: var(--radius-sm);
+    background: white;
+    color: var(--text);
+    font-family: monospace;
+  }
+
+  .api-bar input:focus { outline: none; border-color: var(--blue-text); }
+
+  .api-bar a {
+    font-size: 12px;
+    color: var(--blue-text);
+    white-space: nowrap;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1rem;
+  }
+
+  label.field-label {
+    font-size: 13px;
+    color: var(--text-2);
+    display: block;
+    margin-bottom: 5px;
+  }
+
+  input[type="text"], textarea {
+    width: 100%;
+    padding: 9px 12px;
+    font-size: 14px;
+    border: 0.5px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font-family: inherit;
+    line-height: 1.5;
+    transition: border-color 0.15s;
+  }
+
+  input[type="text"]:focus, textarea:focus {
+    outline: none;
+    border-color: #6366f1;
+  }
+
+  textarea { resize: vertical; }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .field-group { margin-bottom: 1rem; }
+  .field-group:last-child { margin-bottom: 0; }
+
+  .rating-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .rating-col-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 3px;
+  }
+
+  .rating-col-hint {
+    font-size: 12px;
+    color: var(--text-3);
+    margin-bottom: 10px;
+  }
+
+  .rating-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-family: inherit;
+    border: 0.5px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    margin-bottom: 5px;
+    transition: all 0.1s;
+  }
+
+  .rating-btn:hover { background: var(--surface-2); }
+
+  .rating-btn.selected {
+    background: #EFF6FF;
+    border-color: #93c5fd;
+    color: #1e40af;
+  }
+
+  .rating-btn .hint {
+    color: var(--text-3);
+    font-size: 12px;
+  }
+
+  .rating-btn.selected .hint { color: #60a5fa; }
+
+  .calc-btn {
+    width: 100%;
+    padding: 13px;
+    font-size: 15px;
+    font-weight: 500;
+    font-family: inherit;
+    border: none;
+    border-radius: var(--radius);
+    background: #1a1917;
+    color: white;
+    cursor: pointer;
+    margin-bottom: 1.5rem;
+    transition: opacity 0.15s;
+  }
+
+  .calc-btn:hover { opacity: 0.85; }
+  .calc-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .risk-badge {
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .risk-badge .risk-label {
+    font-size: 20px;
+    font-weight: 600;
+  }
+
+  .risk-badge .risk-meta {
+    font-size: 13px;
+    margin-top: 2px;
+    opacity: 0.85;
+  }
+
+  .risk-badge .risk-resident {
+    font-size: 13px;
+    margin-top: 4px;
+    opacity: 0.8;
+  }
+
+  .section-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    margin-bottom: 10px;
+  }
+
+  .section-icon-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .section-icon-label svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+
+  .section-body {
+    font-size: 14px;
+    color: var(--text-2);
+    line-height: 1.7;
+  }
+
+  .matrix-wrap {
+    margin-top: 1.5rem;
+  }
+
+  .matrix-hint {
+    font-size: 12px;
+    color: var(--text-3);
+    margin-bottom: 8px;
+  }
+
+  .matrix-grid {
+    display: inline-grid;
+    grid-template-columns: 24px repeat(5, 40px);
+    gap: 3px;
+  }
+
+  .matrix-cell {
+    width: 40px;
+    height: 40px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    transition: opacity 0.2s, border 0.2s;
+  }
+
+  .matrix-label {
+    font-size: 11px;
+    color: var(--text-3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .legend {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+  }
+
+  .loading-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #6366f1;
+    animation: pulse 1s infinite;
+    margin-right: 8px;
+  }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.25} }
+
+  .error-msg {
+    color: var(--orange-text);
+    font-size: 14px;
+    padding: 10px 0;
+  }
+
+  .print-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-family: inherit;
+    border: 0.5px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text-2);
+    cursor: pointer;
+    margin-top: 1rem;
+    transition: background 0.1s;
+  }
+
+  .print-btn:hover { background: var(--surface-2); }
+
+  @media print {
+    body { background: white; padding: 0; }
+    .api-bar, .calc-btn, .print-btn, .matrix-wrap { display: none !important; }
+    .card { border: 1px solid #ddd; page-break-inside: avoid; }
+  }
+
+  @media (max-width: 560px) {
+    .field-row, .rating-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>Dignity of Risk Scorer</h1>
+    <p>Score any clinical risk scenario and generate a care-ready summary for resident conversations.</p>
+  </header>
+
+  <div class="api-bar">
+    <label for="apiKey">Gemini API key</label>
+    <input type="password" id="apiKey" placeholder="Paste your key here — stored in this browser only" />
+    <a href="https://aistudio.google.com/app/apikey" target="_blank">Get a free key ↗</a>
+  </div>
+
+  <div class="card">
+    <p class="card-title">Resident details</p>
+    <div class="field-row">
+      <div class="field-group">
+        <label class="field-label" for="residentName">Resident name (optional)</label>
+        <input type="text" id="residentName" placeholder="e.g. Margaret" />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="ward">Ward / location (optional)</label>
+        <input type="text" id="ward" placeholder="e.g. Grevillea MSU" />
+      </div>
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="scenario">What does the resident want to do?</label>
+      <textarea id="scenario" rows="3" placeholder="e.g. Resident wants to eat Level 7 (normal) diet. Speech pathologist has assessed them as requiring Level 4 (pureed) due to dysphagia and aspiration risk."></textarea>
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="background">Relevant clinical background (optional)</label>
+      <textarea id="background" rows="2" placeholder="e.g. History of stroke, cognitive impairment, lives in memory support unit, has decision-making capacity."></textarea>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="card-title">Risk rating</p>
+    <div class="rating-grid">
+      <div>
+        <p class="rating-col-label">Likelihood of harm</p>
+        <p class="rating-col-hint">How likely is harm if the resident proceeds?</p>
+        <button class="rating-btn" onclick="selectBtn('likelihood', 1, this)">1 — Rare <span class="hint">unlikely to happen</span></button>
+        <button class="rating-btn" onclick="selectBtn('likelihood', 2, this)">2 — Unlikely <span class="hint">could happen</span></button>
+        <button class="rating-btn" onclick="selectBtn('likelihood', 3, this)">3 — Possible <span class="hint">might happen occasionally</span></button>
+        <button class="rating-btn" onclick="selectBtn('likelihood', 4, this)">4 — Likely <span class="hint">will probably happen</span></button>
+        <button class="rating-btn" onclick="selectBtn('likelihood', 5, this)">5 — Almost certain <span class="hint">expected to happen</span></button>
+      </div>
+      <div>
+        <p class="rating-col-label">Consequence if harm occurs</p>
+        <p class="rating-col-hint">How serious would the outcome be?</p>
+        <button class="rating-btn" onclick="selectBtn('consequence', 1, this)">1 — Negligible <span class="hint">no lasting effect</span></button>
+        <button class="rating-btn" onclick="selectBtn('consequence', 2, this)">2 — Minor <span class="hint">minor injury, recoverable</span></button>
+        <button class="rating-btn" onclick="selectBtn('consequence', 3, this)">3 — Moderate <span class="hint">injury requiring treatment</span></button>
+        <button class="rating-btn" onclick="selectBtn('consequence', 4, this)">4 — Major <span class="hint">serious injury, hospitalisation</span></button>
+        <button class="rating-btn" onclick="selectBtn('consequence', 5, this)">5 — Catastrophic <span class="hint">death or permanent harm</span></button>
+      </div>
+    </div>
+
+    <div class="matrix-wrap">
+      <p class="matrix-hint">Risk matrix — likelihood (rows) × consequence (columns)</p>
+      <div class="matrix-grid" id="matrixGrid"></div>
+      <div class="legend" id="legend"></div>
+    </div>
+  </div>
+
+  <button class="calc-btn" onclick="calculate()">Calculate risk &amp; generate clinical summary</button>
+
+  <div id="scoreResult"></div>
+  <div id="aiResult"></div>
+
+</div>
+
+<script>
+let likelihood = null;
+let consequence = null;
+
+const risks = [
+  { min:1,  max:3,  label:'Low',     color:'#3B6D11', bg:'#EAF3DE', border:'#639922' },
+  { min:4,  max:8,  label:'Medium',  color:'#854F0B', bg:'#FAEEDA', border:'#BA7517' },
+  { min:9,  max:14, label:'High',    color:'#993C1D', bg:'#FAECE7', border:'#D85A30' },
+  { min:15, max:25, label:'Extreme', color:'#A32D2D', bg:'#FCEBEB', border:'#E24B4A' },
+];
+
+const icons = {
+  risks_involved: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>`,
+  capacity_note: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>`,
+  support_strategies: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+  monitoring_plan: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`,
+  documentation_guidance: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
+  conversation_opener: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>`,
+};
+
+const sectionMeta = [
+  { key:'risks_involved',          label:'Risks involved' },
+  { key:'capacity_note',           label:'Decision-making capacity' },
+  { key:'support_strategies',      label:'Support strategies' },
+  { key:'monitoring_plan',         label:'Monitoring plan' },
+  { key:'documentation_guidance',  label:'Documentation guidance' },
+  { key:'conversation_opener',     label:'Suggested conversation opener' },
+];
+
+function getRisk(s) { return risks.find(r => s >= r.min && s <= r.max); }
+
+function selectBtn(type, val, el) {
+  document.querySelectorAll('#' + (type === 'likelihood' ? 'likelihoodCol' : 'consequenceCol') + ' .rating-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  if (type === 'likelihood') likelihood = val; else consequence = val;
+  renderMatrix();
+}
+
+// attach ids to cols for selectBtn
+document.addEventListener('DOMContentLoaded', () => {
+  const cols = document.querySelectorAll('.rating-grid > div');
+  if (cols[0]) cols[0].id = 'likelihoodCol';
+  if (cols[1]) cols[1].id = 'consequenceCol';
+  renderMatrix();
+});
+
+function renderMatrix() {
+  const grid = document.getElementById('matrixGrid');
+  const legend = document.getElementById('legend');
+  let html = '<div></div>';
+  for (let c = 1; c <= 5; c++) html += `<div class="matrix-label">${c}</div>`;
+  for (let l = 5; l >= 1; l--) {
+    html += `<div class="matrix-label" style="justify-content:flex-end; padding-right:3px;">${l}</div>`;
+    for (let c = 1; c <= 5; c++) {
+      const s = l * c;
+      const r = getRisk(s);
+      const active = likelihood === l && consequence === c;
+      const dim = (likelihood && consequence && !active) ? 'opacity:0.28;' : '';
+      html += `<div class="matrix-cell" style="background:${r.bg};color:${r.color};border:${active ? '2px solid ' + r.color : '1px solid transparent'};${dim}">${s}</div>`;
+    }
+  }
+  grid.innerHTML = html;
+  legend.innerHTML = risks.map(r => `<div class="legend-item"><div class="legend-dot" style="background:${r.bg};border:1px solid ${r.border};"></div><span style="color:${r.color};">${r.label}</span></div>`).join('');
+}
+
+async function calculate() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const scenario = document.getElementById('scenario').value.trim();
+  const background = document.getElementById('background').value.trim();
+  const name = document.getElementById('residentName').value.trim();
+  const ward = document.getElementById('ward').value.trim();
+  const scoreEl = document.getElementById('scoreResult');
+  const aiEl = document.getElementById('aiResult');
+
+  if (!apiKey) { scoreEl.innerHTML = '<p class="error-msg">Please enter your Gemini API key above.</p>'; return; }
+  if (!scenario) { scoreEl.innerHTML = '<p class="error-msg">Please describe what the resident wants to do.</p>'; return; }
+  if (!likelihood || !consequence) { scoreEl.innerHTML = '<p class="error-msg">Please select both a likelihood and a consequence rating.</p>'; return; }
+
+  const score = likelihood * consequence;
+  const risk = getRisk(score);
+  const nameLabel = name || 'The resident';
+
+  scoreEl.innerHTML = `
+    <div class="risk-badge" style="background:${risk.bg}; border:0.5px solid ${risk.border};">
+      <div class="risk-label" style="color:${risk.color};">${risk.label} risk</div>
+      <div class="risk-meta" style="color:${risk.color};">Score ${score}/25 &nbsp;·&nbsp; Likelihood ${likelihood} × Consequence ${consequence}</div>
+      ${name ? `<div class="risk-resident" style="color:${risk.color};">${name}${ward ? ' · ' + ward : ''}</div>` : ''}
+    </div>`;
+
+  renderMatrix();
+
+  aiEl.innerHTML = `<div class="section-card"><p style="font-size:14px;color:#6366f1;"><span class="loading-dot"></span>Generating clinical summary via Gemini...</p></div>`;
+
+  const prompt = `You are a clinical support tool used by registered nurses in a residential aged care facility in Queensland, Australia, helping document a dignity of risk assessment.
+
+SCENARIO:
+${nameLabel}${ward ? ' (' + ward + ')' : ''} wants to: ${scenario}
+${background ? 'Clinical background: ' + background : ''}
+RISK SCORE: ${score}/25 — ${risk.label} risk (Likelihood: ${likelihood}/5, Consequence: ${consequence}/5)
+
+Return ONLY a valid JSON object with these exact fields — no preamble, no markdown, no backticks:
+{
+  "risks_involved": "Specific clinical risks if the resident proceeds. Be detailed and clinical.",
+  "capacity_note": "What staff should consider and document regarding the resident's decision-making capacity.",
+  "support_strategies": "Practical strategies to support the resident while minimising harm — referrals, monitoring, equipment, environment.",
+  "monitoring_plan": "What to monitor, how often, and what triggers escalation or review.",
+  "documentation_guidance": "What to document in the care plan, who to notify (GP, family, allied health), what agreements to record.",
+  "conversation_opener": "A warm, plain-language opening a nurse could use to begin the dignity of risk conversation with the resident."
+}`;
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AQ.Ab8RN6It2k8LJ01kKwhRe1AYo7uVszdEnIafMUSnLC8oT7x_qA`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.4, maxOutputTokens: 1200 }
+        })
+      }
+    );
+
+    const data = await res.json();
+
+    if (data.error) throw new Error(data.error.message);
+
+    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+
+    let html = '';
+    sectionMeta.forEach(s => {
+      if (parsed[s.key]) {
+        html += `
+          <div class="section-card">
+            <div class="section-icon-label">${icons[s.key] || ''} ${s.label}</div>
+            <p class="section-body">${parsed[s.key]}</p>
+          </div>`;
+      }
+    });
+
+    html += `<button class="print-btn" onclick="window.print()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Print / save as PDF
+    </button>`;
+
+    aiEl.innerHTML = html;
+
+  } catch (err) {
+    aiEl.innerHTML = `<div class="section-card"><p class="error-msg">Error: ${err.message}. Check your API key and try again.</p></div>`;
+  }
+}
+</script>
+</body>
+</html>
