@@ -54,45 +54,6 @@
     color: var(--text-2);
   }
 
-  .api-bar {
-    background: var(--blue-bg);
-    border: 0.5px solid var(--blue-border);
-    border-radius: var(--radius);
-    padding: 12px 16px;
-    margin-bottom: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-
-  .api-bar label {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--blue-text);
-    white-space: nowrap;
-  }
-
-  .api-bar input {
-    flex: 1;
-    min-width: 200px;
-    padding: 7px 10px;
-    font-size: 13px;
-    border: 0.5px solid var(--blue-border);
-    border-radius: var(--radius-sm);
-    background: white;
-    color: var(--text);
-    font-family: monospace;
-  }
-
-  .api-bar input:focus { outline: none; border-color: var(--blue-text); }
-
-  .api-bar a {
-    font-size: 12px;
-    color: var(--blue-text);
-    white-space: nowrap;
-  }
-
   .card {
     background: var(--surface);
     border: 0.5px solid var(--border);
@@ -365,7 +326,7 @@
 
   @media print {
     body { background: white; padding: 0; }
-    .api-bar, .calc-btn, .print-btn, .matrix-wrap { display: none !important; }
+    .calc-btn, .print-btn, .matrix-wrap { display: none !important; }
     .card { border: 1px solid #ddd; page-break-inside: avoid; }
   }
 
@@ -381,12 +342,6 @@
     <h1>Dignity of Risk Scorer</h1>
     <p>Score any clinical risk scenario and generate a care-ready summary for resident conversations.</p>
   </header>
-
-  <div class="api-bar">
-    <label for="apiKey">Gemini API key</label>
-    <input type="password" id="apiKey" placeholder="Paste your key here — stored in this browser only" />
-    <a href="https://aistudio.google.com/app/apikey" target="_blank">Get a free key ↗</a>
-  </div>
 
   <div class="card">
     <p class="card-title">Resident details</p>
@@ -448,6 +403,9 @@
 </div>
 
 <script>
+const GROQ_API_KEY = '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';
+const GROQ_MODEL   = 'llama-3.3-70b-versatile';
+
 let likelihood = null;
 let consequence = null;
 
@@ -479,13 +437,13 @@ const sectionMeta = [
 function getRisk(s) { return risks.find(r => s >= r.min && s <= r.max); }
 
 function selectBtn(type, val, el) {
-  document.querySelectorAll('#' + (type === 'likelihood' ? 'likelihoodCol' : 'consequenceCol') + ' .rating-btn').forEach(b => b.classList.remove('selected'));
+  const colId = type === 'likelihood' ? 'likelihoodCol' : 'consequenceCol';
+  document.querySelectorAll('#' + colId + ' .rating-btn').forEach(b => b.classList.remove('selected'));
   el.classList.add('selected');
   if (type === 'likelihood') likelihood = val; else consequence = val;
   renderMatrix();
 }
 
-// attach ids to cols for selectBtn
 document.addEventListener('DOMContentLoaded', () => {
   const cols = document.querySelectorAll('.rating-grid > div');
   if (cols[0]) cols[0].id = 'likelihoodCol';
@@ -509,24 +467,24 @@ function renderMatrix() {
     }
   }
   grid.innerHTML = html;
-  legend.innerHTML = risks.map(r => `<div class="legend-item"><div class="legend-dot" style="background:${r.bg};border:1px solid ${r.border};"></div><span style="color:${r.color};">${r.label}</span></div>`).join('');
+  legend.innerHTML = risks.map(r =>
+    `<div class="legend-item"><div class="legend-dot" style="background:${r.bg};border:1px solid ${r.border};"></div><span style="color:${r.color};">${r.label}</span></div>`
+  ).join('');
 }
 
 async function calculate() {
-  const apiKey = document.getElementById('apiKey').value.trim();
-  const scenario = document.getElementById('scenario').value.trim();
+  const scenario  = document.getElementById('scenario').value.trim();
   const background = document.getElementById('background').value.trim();
-  const name = document.getElementById('residentName').value.trim();
-  const ward = document.getElementById('ward').value.trim();
-  const scoreEl = document.getElementById('scoreResult');
-  const aiEl = document.getElementById('aiResult');
+  const name      = document.getElementById('residentName').value.trim();
+  const ward      = document.getElementById('ward').value.trim();
+  const scoreEl   = document.getElementById('scoreResult');
+  const aiEl      = document.getElementById('aiResult');
 
-  if (!apiKey) { scoreEl.innerHTML = '<p class="error-msg">Please enter your Gemini API key above.</p>'; return; }
-  if (!scenario) { scoreEl.innerHTML = '<p class="error-msg">Please describe what the resident wants to do.</p>'; return; }
+  if (!scenario)    { scoreEl.innerHTML = '<p class="error-msg">Please describe what the resident wants to do.</p>'; return; }
   if (!likelihood || !consequence) { scoreEl.innerHTML = '<p class="error-msg">Please select both a likelihood and a consequence rating.</p>'; return; }
 
   const score = likelihood * consequence;
-  const risk = getRisk(score);
+  const risk  = getRisk(score);
   const nameLabel = name || 'The resident';
 
   scoreEl.innerHTML = `
@@ -538,7 +496,7 @@ async function calculate() {
 
   renderMatrix();
 
-  aiEl.innerHTML = `<div class="section-card"><p style="font-size:14px;color:#6366f1;"><span class="loading-dot"></span>Generating clinical summary via Gemini...</p></div>`;
+  aiEl.innerHTML = `<div class="section-card"><p style="font-size:14px;color:#6366f1;"><span class="loading-dot"></span>Generating clinical summary via Groq…</p></div>`;
 
   const prompt = `You are a clinical support tool used by registered nurses in a residential aged care facility in Queensland, Australia, helping document a dignity of risk assessment.
 
@@ -558,23 +516,25 @@ Return ONLY a valid JSON object with these exact fields — no preamble, no mark
 }`;
 
   try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AQ.Ab8RN6It2k8LJ01kKwhRe1AYo7uVszdEnIafMUSnLC8oT7x_qA`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.4, maxOutputTokens: 1200 }
-        })
-      }
-    );
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${GROQ_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        temperature: 0.4,
+        max_tokens: 1200,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
 
     const data = await res.json();
 
     if (data.error) throw new Error(data.error.message);
 
-    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const raw   = data.choices?.[0]?.message?.content || '';
     const clean = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean);
 
@@ -597,7 +557,7 @@ Return ONLY a valid JSON object with these exact fields — no preamble, no mark
     aiEl.innerHTML = html;
 
   } catch (err) {
-    aiEl.innerHTML = `<div class="section-card"><p class="error-msg">Error: ${err.message}. Check your API key and try again.</p></div>`;
+    aiEl.innerHTML = `<div class="section-card"><p class="error-msg">Error: ${err.message}. Check your network connection and try again.</p></div>`;
   }
 }
 </script>
