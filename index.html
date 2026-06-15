@@ -403,8 +403,8 @@
 </div>
 
 <script>
-const GROQ_API_KEY = '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';
-const GROQ_MODEL   = 'llama-3.3-70b-versatile';
+const GEMINI_API_KEY = 'AQ.Ab8RN6It2k8LJ01kKwhRe1AYo7uVszdEnIafMUSnLC8oT7x_qA';
+const GEMINI_MODEL   = 'gemini-2.0-flash';
 
 let likelihood = null;
 let consequence = null;
@@ -496,7 +496,7 @@ async function calculate() {
 
   renderMatrix();
 
-  aiEl.innerHTML = `<div class="section-card"><p style="font-size:14px;color:#6366f1;"><span class="loading-dot"></span>Generating clinical summary via Groq…</p></div>`;
+  aiEl.innerHTML = `<div class="section-card"><p style="font-size:14px;color:#6366f1;"><span class="loading-dot"></span>Generating clinical summary via Gemini…</p></div>`;
 
   const prompt = `You are a clinical support tool used by registered nurses in a residential aged care facility in Queensland, Australia, helping document a dignity of risk assessment.
 
@@ -516,25 +516,23 @@ Return ONLY a valid JSON object with these exact fields — no preamble, no mark
 }`;
 
   try {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GROQ_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: GROQ_MODEL,
-        temperature: 0.4,
-        max_tokens: 1200,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.4, maxOutputTokens: 1200 }
+        })
+      }
+    );
 
     const data = await res.json();
 
     if (data.error) throw new Error(data.error.message);
 
-    const raw   = data.choices?.[0]?.message?.content || '';
+    const raw   = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const clean = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean);
 
