@@ -403,7 +403,7 @@
 </div>
 
 <script>
-const GEMINI_API_KEY = 'AQ.Ab8RN6INglXvP8CzF3UrOBfJg9PihlbzfR5C2p9XmmMpdENxrQ';
+const GEMINI_API_KEY = 'AQ.Ab8RN6K8ErwND3TtngmHJPfSpx8zep65Ycsqlm1k7Gt_NX7uFg'; 
 const GEMINI_MODEL   = 'gemini-2.0-flash';
 
 let likelihood = null;
@@ -515,18 +515,22 @@ Return ONLY a valid JSON object with these exact fields — no preamble, no mark
   "conversation_opener": "A warm, plain-language opening a nurse could use to begin the dignity of risk conversation with the resident."
 }`;
 
-  try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=AQ.Ab8RN6INglXvP8CzF3UrOBfJg9PihlbzfR5C2p9XmmMpdENxrQ`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.4, maxOutputTokens: 1200 }
-        })
-      }
-    );
+ try {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { 
+          temperature: 0.4, 
+          maxOutputTokens: 1200,
+          responseMimeType: "application/json" // Forces Gemini to return clean JSON natively!
+        }
+      })
+    }
+  );
 
     const data = await res.json();
 
