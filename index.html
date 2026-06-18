@@ -403,9 +403,8 @@
 </div>
 
 <script>
-// 1. Paste your Groq API key here
-const GROQ_API_KEY = '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'; 
-const GROQ_MODEL   = 'llama-3.1-8b-instant'; // The most permissive free-tier model (14.4k requests/day)
+const GROQ_API_KEY = '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';
+const GROQ_MODEL   = 'llama-3.1-8b-instant';
 
 let likelihood = null;
 let consequence = null;
@@ -418,21 +417,21 @@ const risks = [
 ];
 
 const icons = {
-  risks_involved: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>`,
-  capacity_note: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>`,
-  support_strategies: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
-  monitoring_plan: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`,
-  documentation_guidance: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
-  conversation_opener: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>`,
+  risks_and_outcomes: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>`,
+  alternative_options: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>`,
+  point_of_compromise: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8m-4-4v8"/></svg>`,
+  further_discussion: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>`,
+  mitigation_strategies: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+  outcome_of_discussion: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>`,
 };
 
 const sectionMeta = [
-  { key:'risks_involved',          label:'Risks involved' },
-  { key:'capacity_note',           label:'Decision-making capacity' },
-  { key:'support_strategies',      label:'Support strategies' },
-  { key:'monitoring_plan',         label:'Monitoring plan' },
-  { key:'documentation_guidance',  label:'Documentation guidance' },
-  { key:'conversation_opener',     label:'Suggested conversation opener' },
+  { key:'risks_and_outcomes',    label:'Risks and potential outcomes' },
+  { key:'alternative_options',   label:'Alternative options discussed' },
+  { key:'point_of_compromise',   label:'Point of compromise' },
+  { key:'further_discussion',    label:'Further information or discussion required' },
+  { key:'mitigation_strategies', label:'Mitigation strategies' },
+  { key:'outcome_of_discussion', label:'Outcome of discussion' },
 ];
 
 function getRisk(s) { return risks.find(r => s >= r.min && s <= r.max); }
@@ -485,7 +484,6 @@ async function calculate() {
   if (!scenario)  { scoreEl.innerHTML = '<p class="error-msg">Please describe what the resident wants to do.</p>'; return; }
   if (!likelihood || !consequence) { scoreEl.innerHTML = '<p class="error-msg">Please select both a likelihood and a consequence rating.</p>'; return; }
 
-  // Prevent spam clicks (saving rate limits)
   btn.disabled = true;
   btn.innerText = "Generating summary...";
 
@@ -502,23 +500,19 @@ async function calculate() {
 
   renderMatrix();
 
-  aiEl.innerHTML = `<div class="section-card"><p style="font-size:14px;color:#6366f1;"><span class="loading-dot"></span>Analyzing risk report via Groq...</p></div>`;
+  aiEl.innerHTML = `<div class="section-card"><p style="font-size:14px;color:#6366f1;"><span class="loading-dot"></span>Generating document content...</p></div>`;
 
-  // TOKEN-OPTIMIZED PROMPT: Short instructions, direct constraints.
-  const prompt = `Aged Care Clinical Risk Assessment (Queensland, Australia standards).
-Resident: ${nameLabel}.
-Goal: ${scenario}.
-Context: ${background || 'None'}.
-Risk Assessment: ${risk.label} (${score}/25).
+  const prompt = `Aged care dignity of risk documentation (Queensland, Australia).
+Resident: ${nameLabel}. Issue: ${scenario}. Context: ${background || 'None'}. Risk: ${risk.label} (${score}/25).
 
-Provide short, punchy clinical summaries for these JSON fields:
+Return ONLY this JSON, no preamble:
 {
-  "risks_involved": "Max 2 sentences on acute clinical dangers.",
-  "capacity_note": "Max 2 sentences on cognitive/consent documentation.",
-  "support_strategies": "List 2-3 minimal-harm interventions.",
-  "monitoring_plan": "What to watch and when to review/escalate.",
-  "documentation_guidance": "Who to notify (GP, Family, etc) and record.",
-  "conversation_opener": "One comforting, plain-language opening quote."
+  "risks_and_outcomes": "2 sentences max. Acute clinical dangers of this choice.",
+  "alternative_options": "2-3 options considered. Each as a bullet starting with •",
+  "point_of_compromise": "1-2 sentences. Agreed balance between safety and autonomy.",
+  "further_discussion": "1 sentence. Outstanding referrals, assessments, or family input needed.",
+  "mitigation_strategies": "3 bullets starting with •. Concrete, actionable strategies.",
+  "outcome_of_discussion": "2 sentences. Decision reached, who to notify, review date."
 }`;
 
   try {
@@ -532,8 +526,8 @@ Provide short, punchy clinical summaries for these JSON fields:
         model: GROQ_MODEL,
         messages: [{ role: "user", content: prompt }],
         temperature: 0.3,
-        max_tokens: 400, // Hard stop to force low output token counts
-        response_format: { type: "json_object" } // Forces native JSON structure, saving parsing failures
+        max_tokens: 400,
+        response_format: { type: "json_object" }
       })
     });
 
@@ -545,13 +539,21 @@ Provide short, punchy clinical summaries for these JSON fields:
     const data = await res.json();
     const parsed = JSON.parse(data.choices[0].message.content);
 
+    function renderBullets(text) {
+      const lines = text.split('\n').map(l => l.trim()).filter(l => l.startsWith('•'));
+      return lines.length
+        ? `<ul style="padding-left:1.1rem;margin:0;">${lines.map(l => `<li>${l.slice(1).trim()}</li>`).join('')}</ul>`
+        : `<p class="section-body">${text}</p>`;
+    }
+
     let html = '';
     sectionMeta.forEach(s => {
       if (parsed[s.key]) {
+        const isBullet = s.key === 'alternative_options' || s.key === 'mitigation_strategies';
         html += `
           <div class="section-card">
             <div class="section-icon-label">${icons[s.key] || ''} ${s.label}</div>
-            <p class="section-body">${parsed[s.key]}</p>
+            ${isBullet ? renderBullets(parsed[s.key]) : `<p class="section-body">${parsed[s.key]}</p>`}
           </div>`;
       }
     });
@@ -566,7 +568,6 @@ Provide short, punchy clinical summaries for these JSON fields:
   } catch (err) {
     aiEl.innerHTML = `<div class="section-card"><p class="error-msg">Error: ${err.message}. Please verify your API key and connection.</p></div>`;
   } finally {
-    // Restore button functionality
     btn.disabled = false;
     btn.innerText = "Calculate risk & generate clinical summary";
   }
