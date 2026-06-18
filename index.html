@@ -403,8 +403,9 @@
 </div>
 
 <script>
-const GEMINI_API_KEY = 'AQ.Ab8RN6K8ErwND3TtngmHJPfSpx8zep65Ycsqlm1k7Gt_NX7uFg'; 
-const GEMINI_MODEL   = 'gemini-2.0-flash';
+// 1. Paste your Groq API key here
+const GROQ_API_KEY = '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'; 
+const GROQ_MODEL   = 'llama-3.1-8b-instant'; // The most permissive free-tier model (14.4k requests/day)
 
 let likelihood = null;
 let consequence = null;
@@ -473,15 +474,20 @@ function renderMatrix() {
 }
 
 async function calculate() {
-  const scenario  = document.getElementById('scenario').value.trim();
+  const scenario   = document.getElementById('scenario').value.trim();
   const background = document.getElementById('background').value.trim();
-  const name      = document.getElementById('residentName').value.trim();
-  const ward      = document.getElementById('ward').value.trim();
-  const scoreEl   = document.getElementById('scoreResult');
-  const aiEl      = document.getElementById('aiResult');
+  const name       = document.getElementById('residentName').value.trim();
+  const ward       = document.getElementById('ward').value.trim();
+  const scoreEl    = document.getElementById('scoreResult');
+  const aiEl       = document.getElementById('aiResult');
+  const btn        = document.querySelector('.calc-btn');
 
-  if (!scenario)    { scoreEl.innerHTML = '<p class="error-msg">Please describe what the resident wants to do.</p>'; return; }
+  if (!scenario)  { scoreEl.innerHTML = '<p class="error-msg">Please describe what the resident wants to do.</p>'; return; }
   if (!likelihood || !consequence) { scoreEl.innerHTML = '<p class="error-msg">Please select both a likelihood and a consequence rating.</p>'; return; }
+
+  // Prevent spam clicks (saving rate limits)
+  btn.disabled = true;
+  btn.innerText = "Generating summary...";
 
   const score = likelihood * consequence;
   const risk  = getRisk(score);
@@ -496,49 +502,48 @@ async function calculate() {
 
   renderMatrix();
 
-  aiEl.innerHTML = `<div class="section-card"><p style="font-size:14px;color:#6366f1;"><span class="loading-dot"></span>Generating clinical summary via Gemini…</p></div>`;
+  aiEl.innerHTML = `<div class="section-card"><p style="font-size:14px;color:#6366f1;"><span class="loading-dot"></span>Analyzing risk report via Groq...</p></div>`;
 
-  const prompt = `You are a clinical support tool used by registered nurses in a residential aged care facility in Queensland, Australia, helping document a dignity of risk assessment.
+  // TOKEN-OPTIMIZED PROMPT: Short instructions, direct constraints.
+  const prompt = `Aged Care Clinical Risk Assessment (Queensland, Australia standards).
+Resident: ${nameLabel}.
+Goal: ${scenario}.
+Context: ${background || 'None'}.
+Risk Assessment: ${risk.label} (${score}/25).
 
-SCENARIO:
-${nameLabel}${ward ? ' (' + ward + ')' : ''} wants to: ${scenario}
-${background ? 'Clinical background: ' + background : ''}
-RISK SCORE: ${score}/25 — ${risk.label} risk (Likelihood: ${likelihood}/5, Consequence: ${consequence}/5)
-
-Return ONLY a valid JSON object with these exact fields — no preamble, no markdown, no backticks:
+Provide short, punchy clinical summaries for these JSON fields:
 {
-  "risks_involved": "Specific clinical risks if the resident proceeds. Be detailed and clinical.",
-  "capacity_note": "What staff should consider and document regarding the resident's decision-making capacity.",
-  "support_strategies": "Practical strategies to support the resident while minimising harm — referrals, monitoring, equipment, environment.",
-  "monitoring_plan": "What to monitor, how often, and what triggers escalation or review.",
-  "documentation_guidance": "What to document in the care plan, who to notify (GP, family, allied health), what agreements to record.",
-  "conversation_opener": "A warm, plain-language opening a nurse could use to begin the dignity of risk conversation with the resident."
+  "risks_involved": "Max 2 sentences on acute clinical dangers.",
+  "capacity_note": "Max 2 sentences on cognitive/consent documentation.",
+  "support_strategies": "List 2-3 minimal-harm interventions.",
+  "monitoring_plan": "What to watch and when to review/escalate.",
+  "documentation_guidance": "Who to notify (GP, Family, etc) and record.",
+  "conversation_opener": "One comforting, plain-language opening quote."
 }`;
 
- try {
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+  try {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${GROQ_API_KEY}`,
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { 
-          temperature: 0.4, 
-          maxOutputTokens: 1200,
-          responseMimeType: "application/json" // Forces Gemini to return clean JSON natively!
-        }
+        model: GROQ_MODEL,
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.3,
+        max_tokens: 400, // Hard stop to force low output token counts
+        response_format: { type: "json_object" } // Forces native JSON structure, saving parsing failures
       })
+    });
+
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.error?.message || `HTTP error! status: ${res.status}`);
     }
-  );
 
     const data = await res.json();
-
-    if (data.error) throw new Error(data.error.message);
-
-    const raw   = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const clean = raw.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(clean);
+    const parsed = JSON.parse(data.choices[0].message.content);
 
     let html = '';
     sectionMeta.forEach(s => {
@@ -559,7 +564,11 @@ Return ONLY a valid JSON object with these exact fields — no preamble, no mark
     aiEl.innerHTML = html;
 
   } catch (err) {
-    aiEl.innerHTML = `<div class="section-card"><p class="error-msg">Error: ${err.message}. Check your network connection and try again.</p></div>`;
+    aiEl.innerHTML = `<div class="section-card"><p class="error-msg">Error: ${err.message}. Please verify your API key and connection.</p></div>`;
+  } finally {
+    // Restore button functionality
+    btn.disabled = false;
+    btn.innerText = "Calculate risk & generate clinical summary";
   }
 }
 </script>
